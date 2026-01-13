@@ -96,42 +96,31 @@ public class Main {
     static String schemaFile = "schema.txt";
     static String dataFile = "data.txt";
 
-    // Simple internal class for condition
+    // ---------------- CONDITION STRUCTURE ----------------
     static class Condition {
-        boolean isLeaf; // true if simple condition, false if composite
-        String column, value; // for leaf
-        Condition left, right; // for composite
-        String operator; // AND / OR for composite
+        boolean isLeaf;          // true = simple condition
+        String column;           // column name
+        String value;            // value to compare
+        Condition left, right;   // for nested conditions
+        String operator;         // AND / OR
 
-        // Leaf constructor
+        // Simple condition
         Condition(String col, String val) {
             isLeaf = true;
             column = col;
             value = val;
         }
 
-        // Composite constructor
+        // Composite condition
         Condition(Condition l, Condition r, String op) {
             isLeaf = false;
             left = l;
             right = r;
             operator = op;
         }
-
-        // Evaluate this condition against a data row
-        boolean evaluate(String[] row, Map<String, Integer> colIndex) {
-            if (isLeaf) {
-                return row[colIndex.get(column)].equals(value);
-            } else {
-                if (operator.equalsIgnoreCase("AND")) {
-                    return left.evaluate(row, colIndex) && right.evaluate(row, colIndex);
-                } else {
-                    return left.evaluate(row, colIndex) || right.evaluate(row, colIndex);
-                }
-            }
-        }
     }
 
+    // ---------------- MAIN ----------------
     public static void main(String[] args) throws Exception {
 
         Scanner in = new Scanner(System.in);
@@ -142,49 +131,86 @@ public class Main {
         select(root);
     }
 
-    // Recursive input for nested conditions
+    // ---------------- RECURSIVE INPUT ----------------
     static Condition readCondition(Scanner in) {
+
         System.out.print("Is this a simple condition? (Y/N): ");
         if (in.nextLine().equalsIgnoreCase("Y")) {
-            System.out.print("Column: ");
+
+            System.out.print("Column name: ");
             String col = in.nextLine();
+
             System.out.print("Value: ");
             String val = in.nextLine();
+
             return new Condition(col, val);
         }
 
-        System.out.println("Left side:");
+        System.out.println("Left condition:");
         Condition left = readCondition(in);
 
         System.out.print("Operator (AND/OR): ");
         String op = in.nextLine();
 
-        System.out.println("Right side:");
+        System.out.println("Right condition:");
         Condition right = readCondition(in);
 
         return new Condition(left, right, op);
     }
 
-    // Select rows matching the condition
-    static void select(Condition cond) throws IOException {
+    // ---------------- SELECT ----------------
+    static void select(Condition condition) throws IOException {
+
         BufferedReader schemaReader = new BufferedReader(new FileReader(schemaFile));
         BufferedReader dataReader = new BufferedReader(new FileReader(dataFile));
 
-        String[] cols = schemaReader.readLine().split(",");
-        Map<String, Integer> colIndex = new HashMap<>();
-        for (int i = 0; i < cols.length; i++) {
-            colIndex.put(cols[i].split("-")[0], i);
-        }
+        String[] columns = schemaReader.readLine().split(",");
 
         String row;
         boolean found = false;
+
         while ((row = dataReader.readLine()) != null) {
             String[] data = row.split(",");
-            if (cond.evaluate(data, colIndex)) {
+
+            if (evaluate(condition, data, columns)) {
                 System.out.println(row);
                 found = true;
             }
         }
-        if (!found) System.out.println("No matching records found");
+
+        if (!found) {
+            System.out.println("No matching records found");
+        }
+    }
+
+    // ---------------- EVALUATE CONDITION ----------------
+    static boolean evaluate(Condition c, String[] row, String[] columns) {
+
+        if (c.isLeaf) {
+            int idx = getColumnIndex(columns, c.column);
+            if (idx == -1) {
+                System.out.println("Column not found: " + c.column);
+                return false;
+            }
+            return row[idx].equals(c.value);
+        }
+
+        if (c.operator.equalsIgnoreCase("AND")) {
+            return evaluate(c.left, row, columns)
+                    && evaluate(c.right, row, columns);
+        } else {
+            return evaluate(c.left, row, columns)
+                    || evaluate(c.right, row, columns);
+        }
+    }
+
+    // ---------------- COLUMN INDEX SEARCH (OPTION 1) ----------------
+    static int getColumnIndex(String[] columns, String colName) {
+        for (int i = 0; i < columns.length; i++) {
+            if (columns[i].split("-")[0].equals(colName)) {
+                return i;
+            }
+        }
+        return -1;
     }
 }
