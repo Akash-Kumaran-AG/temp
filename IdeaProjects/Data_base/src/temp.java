@@ -214,3 +214,86 @@ public class Main {
         return -1;
     }
 }
+
+
+import java.io.*;
+import java.util.*;
+
+public class Main {
+
+    static String schemaFile = "schema.txt";
+    static String dataFile = "data.txt";
+
+    public static void main(String[] args) throws Exception {
+
+        Scanner in = new Scanner(System.in);
+
+        BufferedReader schemaReader = new BufferedReader(new FileReader(schemaFile));
+        String[] columns = schemaReader.readLine().split(",");
+
+        BufferedReader dataReader = new BufferedReader(new FileReader(dataFile));
+
+        System.out.println("Build WHERE condition:");
+        boolean found = false;
+
+        String row;
+        while ((row = dataReader.readLine()) != null) {
+            String[] data = row.split(",");
+
+            if (evaluateCondition(in, data, columns)) {
+                System.out.println(row);
+                found = true;
+            }
+        }
+
+        if (!found) {
+            System.out.println("No matching records found");
+        }
+    }
+
+    // ---------------- RECURSIVE EVALUATION ----------------
+    static boolean evaluateCondition(Scanner in, String[] row, String[] columns) {
+
+        System.out.print("Is this a simple condition? (Y/N): ");
+        if (in.nextLine().equalsIgnoreCase("Y")) {
+
+            System.out.print("Column name: ");
+            String col = in.nextLine();
+
+            System.out.print("Value: ");
+            String val = in.nextLine();
+
+            int idx = getColumnIndex(columns, col);
+            if (idx == -1) {
+                System.out.println("Column not found: " + col);
+                return false;
+            }
+            return row[idx].equals(val);
+        }
+
+        System.out.println("Left condition:");
+        boolean left = evaluateCondition(in, row, columns);
+
+        System.out.print("Operator (AND/OR): ");
+        String op = in.nextLine();
+
+        System.out.println("Right condition:");
+        boolean right = evaluateCondition(in, row, columns);
+
+        if (op.equalsIgnoreCase("AND")) {
+            return left && right;
+        } else {
+            return left || right;
+        }
+    }
+
+    // ---------------- COLUMN INDEX SEARCH ----------------
+    static int getColumnIndex(String[] columns, String colName) {
+        for (int i = 0; i < columns.length; i++) {
+            if (columns[i].split("-")[0].equals(colName)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+}
