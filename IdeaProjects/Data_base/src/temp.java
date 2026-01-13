@@ -297,3 +297,91 @@ public class Main {
         return -1;
     }
 }
+
+
+
+import java.io.*;
+import java.util.*;
+import java.util.function.Predicate;
+
+public class Main {
+
+    static String schemaFile = "schema.txt";
+    static String dataFile = "data.txt";
+
+    public static void main(String[] args) throws Exception {
+
+        Scanner in = new Scanner(System.in);
+
+        // Read schema
+        BufferedReader schemaReader = new BufferedReader(new FileReader(schemaFile));
+        String[] columns = schemaReader.readLine().split(",");
+
+        // 🔴 Build condition ONCE
+        System.out.println("Build WHERE condition:");
+        Predicate<String[]> condition = readCondition(in, columns);
+
+        // Read data and PRINT matching rows
+        BufferedReader dataReader = new BufferedReader(new FileReader(dataFile));
+
+        String row;
+        boolean found = false;
+
+        while ((row = dataReader.readLine()) != null) {
+            String[] data = row.split(",");
+
+            if (condition.test(data)) {
+                System.out.println(row);
+                found = true;
+            }
+        }
+
+        if (!found) {
+            System.out.println("No matching records found");
+        }
+    }
+
+    // ---------------- RECURSIVE CONDITION INPUT ----------------
+    static Predicate<String[]> readCondition(Scanner in, String[] columns) {
+
+        System.out.print("Is this a simple condition? (Y/N): ");
+        if (in.nextLine().equalsIgnoreCase("Y")) {
+
+            System.out.print("Column name: ");
+            String col = in.nextLine();
+
+            System.out.print("Value: ");
+            String val = in.nextLine();
+
+            int idx = getColumnIndex(columns, col);
+
+            return row -> idx != -1 && row[idx].equals(val);
+        }
+
+        System.out.println("Left condition:");
+        Predicate<String[]> left = readCondition(in, columns);
+
+        System.out.print("Operator (AND/OR): ");
+        String op = in.nextLine();
+
+        System.out.println("Right condition:");
+        Predicate<String[]> right = readCondition(in, columns);
+
+        if (op.equalsIgnoreCase("AND")) {
+            return row -> left.test(row) && right.test(row);
+        } else {
+            return row -> left.test(row) || right.test(row);
+        }
+    }
+
+    // ---------------- COLUMN SEARCH ----------------
+    static int getColumnIndex(String[] columns, String colName) {
+        for (int i = 0; i < columns.length; i++) {
+            if (columns[i].split("-")[0].equals(colName)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+}
+
