@@ -71,7 +71,7 @@ public class Create_table {
                 is_next=false;
                 System.out.println("Enter your row ");
                 for (int i = 0; i < col_nums; i++) {
-                    System.out.print(col_name.get(i));
+                    System.out.print(col_name.get(i)+": ");
 
 //                if(i!=col_nums-1){
                     String st = in.nextLine();
